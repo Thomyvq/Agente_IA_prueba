@@ -46,8 +46,8 @@ class LineFollowerApp:
         self.posiciones_agente = []  # Para almacenar las posiciones del agente
 
     def generar_malla(self):
-        self.N = random.randint(8, 12)
-        self.M = random.randint(8, 12)
+        self.N = 10#random.randint(8, 12)
+        self.M = 12#random.randint(8, 12)
         self.malla = np.zeros((self.N, self.M), dtype=int)
 
         # Agregar líneas oscuras (1)
@@ -58,7 +58,7 @@ class LineFollowerApp:
                 self.malla[i][pos] = 1  # Celda oscura (línea)
 
         # Agregar paredes representadas por 2
-        for _ in range(random.randint(2, 5)):  # Agregar entre 2 y 5 paredes
+        for _ in range(5):#range(random.randint(2, 5)):  # Agregar entre 2 y 5 paredes
             pos_x = random.randint(0, self.N - 1)
             pos_y = random.randint(0, self.M - 1)
             self.malla[pos_x][pos_y] = 2  # Celda de pared
@@ -259,58 +259,24 @@ class AgenteSeguidorLineas:
         return 'Piso Claro'
     
     def percepcion_camara_frontal(self):
-        # Devuelve el estado de las celdas adyacentes
-        izquierda = self.malla[self.pos_x][self.pos_y - 1] if self.pos_y > 0 else 2  # Pared si está en el borde
-        centro = self.malla[self.pos_x][self.pos_y]
-        derecha = self.malla[self.pos_x][self.pos_y + 1] if self.pos_y < self.M - 1 else 2  # Pared si está en el borde
-        return izquierda, centro, derecha
+        percepciones = {'Izquierda': 'Borde', 'Centro': 'Borde', 'Derecha': 'Borde'}
+        return percepciones
     
-    def obtener_estado_casilla(self, x, y):
-    # Comprobar si las coordenadas están dentro de los límites de la malla
-        if x < 0 or x >= len(self.malla) or y < 0 or y >= len(self.malla[0]):
-            return 2  # Si está fuera de los límites, es borde o pared
-        # Devolver el estado de la casilla
-        return self.malla[x][y]
-
     def mover(self):
-        # Obtener el estado de las casillas frente, izquierda y derecha según la dirección actual
-        if self.direccion == 'Norte':
-            frente = self.obtener_estado_casilla(self.pos_x - 1, self.pos_y)
-            izquierda = self.obtener_estado_casilla(self.pos_x, self.pos_y - 1)
-            derecha = self.obtener_estado_casilla(self.pos_x, self.pos_y + 1)
-        elif self.direccion == 'Sur':
-            frente = self.obtener_estado_casilla(self.pos_x + 1, self.pos_y)
-            izquierda = self.obtener_estado_casilla(self.pos_x, self.pos_y + 1)
-            derecha = self.obtener_estado_casilla(self.pos_x, self.pos_y - 1)
-        elif self.direccion == 'Este':
-            frente = self.obtener_estado_casilla(self.pos_x, self.pos_y + 1)
-            izquierda = self.obtener_estado_casilla(self.pos_x - 1, self.pos_y)
-            derecha = self.obtener_estado_casilla(self.pos_x + 1, self.pos_y)
-        elif self.direccion == 'Oeste':
-            frente = self.obtener_estado_casilla(self.pos_x, self.pos_y - 1)
-            izquierda = self.obtener_estado_casilla(self.pos_x + 1, self.pos_y)
-            derecha = self.obtener_estado_casilla(self.pos_x - 1, self.pos_y)
-
-        # Aplicar las reglas de movimiento:
-        if frente == 0 and izquierda == 0 and derecha == 0:
-            self.avanzar()
-        # 1. Si la casilla frente es blanca y ambas (izquierda y derecha) son negras, gira a la derecha
-        if frente == 0 and izquierda == 1 and derecha == 1:
+        percepciones = self.percepcion_camara_frontal()
+        contacto = self.percepcion_contacto()
+        
+        if contacto == 'Contacto':
+            self.choco = True
+            self.regla_aplicada = 'Choque'
             self.girar_derecha()
-        # 2. Si frente es blanca, derecha es blanca y izquierda es negra, avanza y gira a la izquierda
-        elif frente == 0 and derecha == 0 and izquierda == 1:
-            self.avanzar()
-            self.girar_izquierda()
-        # 3. Si frente es blanca, izquierda es blanca y derecha es negra, avanza y gira a la derecha
-        elif frente == 0 and izquierda == 0 and derecha == 1:
-            self.avanzar()
-            self.girar_derecha()
-        # Si ninguna regla se cumple, simplemente avanza
+            self.accion = 'Girar +90'
         else:
+            # Aplicar regla de movimiento
             self.avanzar()
-
+            self.accion = 'Avanzar'
+    
     def avanzar(self):
-        # Actualizar la posición del agente según su dirección actual
         if self.direccion == 'Norte':
             self.pos_x -= 1
         elif self.direccion == 'Sur':
@@ -319,10 +285,8 @@ class AgenteSeguidorLineas:
             self.pos_y += 1
         elif self.direccion == 'Oeste':
             self.pos_y -= 1
-
-
+    
     def girar_derecha(self):
-        # Cambiar la dirección actual del agente en sentido horario
         if self.direccion == 'Norte':
             self.direccion = 'Este'
         elif self.direccion == 'Este':
@@ -331,9 +295,8 @@ class AgenteSeguidorLineas:
             self.direccion = 'Oeste'
         elif self.direccion == 'Oeste':
             self.direccion = 'Norte'
-
+    
     def girar_izquierda(self):
-        # Cambiar la dirección actual del agente en sentido antihorario
         if self.direccion == 'Norte':
             self.direccion = 'Oeste'
         elif self.direccion == 'Oeste':
@@ -342,8 +305,6 @@ class AgenteSeguidorLineas:
             self.direccion = 'Este'
         elif self.direccion == 'Este':
             self.direccion = 'Norte'
-
-
 
 # Iniciar la aplicación
 root = tk.Tk()
